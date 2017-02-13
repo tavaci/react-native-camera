@@ -39,6 +39,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.annotation.Nullable;
 
@@ -358,11 +360,25 @@ public class RCTCameraModule extends ReactContextBaseJavaModule
             return;
         }
 
+        Double st = options.getDouble("startTime");
+        long startTime = st == null ? 0L : st.longValue();
+        long delay = Math.max(0L, startTime - (new Date()).getTime());
+
         try {
-            mMediaRecorder.start();
-            MRStartTime =  System.currentTimeMillis();
-            mRecordingOptions = options;
-            mRecordingPromise = promise;  // only got here if mediaRecorder started
+          if (delay > 0) {
+              new Timer().schedule(new TimerTask() {
+                  @Override
+                  public void run() {
+                      MRStartTime =  System.currentTimeMillis();
+                      mMediaRecorder.start();
+                  }
+              }, delay);
+          } else {
+              MRStartTime =  System.currentTimeMillis();
+              mMediaRecorder.start();
+          }
+          mRecordingOptions = options;
+          mRecordingPromise = promise;  // only got here if mediaRecorder started
         } catch (Exception ex) {
             Log.e(TAG, "Media recorder start error.", ex);
             promise.reject(ex);

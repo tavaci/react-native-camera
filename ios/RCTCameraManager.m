@@ -234,7 +234,7 @@ RCT_CUSTOM_VIEW_PROPERTY(flashMode, NSInteger, RCTCamera) {
 - (void)setFlashMode {
     AVCaptureDevice *device = [self.videoCaptureDeviceInput device];
     NSError *error = nil;
-    
+
     if (![device hasFlash]) return;
     if (![device lockForConfiguration:&error]) {
         NSLog(@"%@", error);
@@ -763,8 +763,17 @@ RCT_EXPORT_METHOD(hasFlash:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRej
         }
     }
 
+    NSInteger captureMode = [[options valueForKey:@"startTime"] integerValue];
+    NSInteger delay = MAX(0L, captureMode - ([[NSDate date] timeIntervalSince1970] * 1000));
+
     //Start recording
-    [self.movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+    if (delay > 0) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+            [self.movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+        });
+    } else {
+        [self.movieFileOutput startRecordingToOutputFileURL:outputURL recordingDelegate:self];
+    }
 
     self.videoResolve = resolve;
     self.videoReject = reject;
